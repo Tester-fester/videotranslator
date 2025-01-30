@@ -34,7 +34,6 @@ def overlay_translated_text(frame, translated_text, text_boxes):
     return frame
 
 def detect_text_boxes(frame):
-    # Use pytesseract to get bounding boxes for text regions
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     d = pytesseract.image_to_boxes(gray)
     text_boxes = []
@@ -57,8 +56,19 @@ def process_video(input_video, output_video, target_lang='fr'):
         final_frame = overlay_translated_text(clean_frame, translated_text, text_boxes)
         return final_frame
     
-    # Add a progress bar for Streamlit to track processing progress
-    new_clip = clip.fl_image(process_frame)
+    # Add a progress bar for Streamlit
+    st.write("Processing video...")
+    progress_bar = st.progress(0)
+    total_frames = int(clip.fps * clip.duration)
+    
+    processed_frames = []
+    for i, frame in enumerate(clip.iter_frames()):
+        processed_frame = process_frame(frame)
+        processed_frames.append(processed_frame)
+        progress_bar.progress((i + 1) / total_frames)
+    
+    # Write processed frames to output video
+    new_clip = clip.fl(lambda gf, t: processed_frames[int(t * clip.fps)], apply_to=['mask', 'audio'])
     new_clip.write_videofile(output_video, codec='libx264', fps=clip.fps)
 
 # Streamlit UI
@@ -80,3 +90,4 @@ if uploaded_file is not None:
 
     # Clean up temporary files
     os.remove(temp_video_path)
+    os.remove(output_video_path)
