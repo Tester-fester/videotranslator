@@ -1,6 +1,6 @@
 streamlit==1.41.1
 opencv-python-headless==4.8.0.74
-pytesseract==0.4.1
+pytesseract==0.3.10  # Use the latest compatible version
 numpy==1.24.1
 googletrans==4.0.0-rc1
 pillow==8.4.0
