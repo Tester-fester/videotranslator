@@ -6,7 +6,6 @@ from moviepy.editor import VideoFileClip
 import streamlit as st
 import tempfile
 import os
-from tqdm import tqdm
 
 # Initialize translator
 translator = Translator()
@@ -81,4 +80,3 @@ if uploaded_file is not None:
 
     # Clean up temporary files
     os.remove(temp_video_path)
-
