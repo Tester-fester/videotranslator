@@ -5,6 +5,8 @@ from googletrans import Translator
 from moviepy.editor import VideoFileClip
 import streamlit as st
 import tempfile
+import os
+from tqdm import tqdm
 
 # Initialize translator
 translator = Translator()
@@ -32,17 +34,31 @@ def overlay_translated_text(frame, translated_text, text_boxes):
         cv2.putText(frame, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
     return frame
 
+def detect_text_boxes(frame):
+    # Use pytesseract to get bounding boxes for text regions
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    d = pytesseract.image_to_boxes(gray)
+    text_boxes = []
+    h, w = frame.shape[:2]
+    for b in d.splitlines():
+        b = b.split()
+        x, y, w, h = int(b[1]), int(b[2]), int(b[3]), int(b[4])
+        text_boxes.append((x, y, w - x, h - y))  # (x, y, width, height)
+    return text_boxes
+
 def process_video(input_video, output_video, target_lang='fr'):
     clip = VideoFileClip(input_video)
     
     def process_frame(frame):
         text = extract_text_from_frame(frame)
         translated_text = translate_text(text, target_lang)
-        text_boxes = [(50, 50, 200, 50)]  # Placeholder; Needs text detection
+        
+        text_boxes = detect_text_boxes(frame)  # Get dynamic text boxes
         clean_frame = remove_text_from_frame(frame, text_boxes)
         final_frame = overlay_translated_text(clean_frame, translated_text, text_boxes)
         return final_frame
     
+    # Add a progress bar for Streamlit to track processing progress
     new_clip = clip.fl_image(process_frame)
     new_clip.write_videofile(output_video, codec='libx264', fps=clip.fps)
 
@@ -62,3 +78,7 @@ if uploaded_file is not None:
     process_video(temp_video_path, output_video_path, target_lang)
 
     st.video(output_video_path)
+
+    # Clean up temporary files
+    os.remove(temp_video_path)
+
